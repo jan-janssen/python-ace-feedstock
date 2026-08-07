@@ -39,9 +39,8 @@ Co-authored-by: Marvin Poul <ponder@creshal.de>
 Co-authored-by: Claude <noreply@anthropic.com>
 ---
  .github/workflows/test.yml    | 11 +++++++++--
- setup.py                      |  2 +-
  tests/test_PyACECalculator.py |  6 +++++-
- 3 files changed, 15 insertions(+), 4 deletions(-)
+ 2 files changed, 14 insertions(+), 3 deletions(-)
 
 diff --git a/.github/workflows/test.yml b/.github/workflows/test.yml
 index 512f43a..e8c8cc4 100644
@@ -67,19 +66,6 @@ index 512f43a..e8c8cc4 100644
      - name: Test with python-ace with tensorpotential
        run: |
          python -m pytest tests/ --runtensorpot
-diff --git a/setup.py b/setup.py
-index c35dadb..44db3f2 100644
---- a/setup.py
-+++ b/setup.py
-@@ -194,7 +194,7 @@ def build_extension(self, ext: CMakeExtension) -> None:
-     url='https://github.com/ICAMS/python-ace',
-     install_requires=['numpy<=1.26.4',
-                       'ase',
--                      'pandas<=2.0',
-+                      'pandas>=2,<4',
-                       'ruamel.yaml',
-                       'psutil',
-                       'scikit-learn<=1.4.2'
 diff --git a/tests/test_PyACECalculator.py b/tests/test_PyACECalculator.py
 index 2f71236..d18c183 100644
 --- a/tests/test_PyACECalculator.py

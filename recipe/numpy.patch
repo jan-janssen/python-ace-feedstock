@@ -79,25 +79,11 @@ Co-authored-by: Marvin Poul <ponder@creshal.de>
 Co-authored-by: Claude <noreply@anthropic.com>
 Co-authored-by: Marvin Poul <poul@mpie.de>
 ---
- setup.py                      |  2 +-
  src/pyace/asecalc.py          | 18 +++++++++---------
  src/pyace/radial.py           |  5 ++++-
  tests/test_PyACECalculator.py |  4 ++++
- 4 files changed, 18 insertions(+), 11 deletions(-)
+ 3 files changed, 17 insertions(+), 10 deletions(-)
 
-diff --git a/setup.py b/setup.py
-index 44db3f2..d5caf07 100644
---- a/setup.py
-+++ b/setup.py
-@@ -192,7 +192,7 @@ def build_extension(self, ext: CMakeExtension) -> None:
-                                           build_ext=CMakeBuild)),
-     zip_safe=False,
-     url='https://github.com/ICAMS/python-ace',
--    install_requires=['numpy<=1.26.4',
-+    install_requires=['numpy<3',
-                       'ase',
-                       'pandas>=2,<4',
-                       'ruamel.yaml',
 diff --git a/src/pyace/asecalc.py b/src/pyace/asecalc.py
 index 359d6f9..5228759 100644
 --- a/src/pyace/asecalc.py

@@ -1,0 +1,182 @@
+From 8861e37300a6b66fca8c948413282b94f57ccbe1 Mon Sep 17 00:00:00 2001
+From: Jan Janssen <jan-janssen@users.noreply.github.com>
+Date: Fri, 7 Aug 2026 17:40:24 +0200
+Subject: [PATCH] Update numpy to 2.4 (#2)
+
+* Bump pandas
+
+* Widen pandas requirement to >=2,<4
+
+Static review and the test suite show no pandas 3 blockers: no removed
+APIs, no chained assignment (Copy-on-Write safe), all .map() usage is on
+Series, and legacy pickled dataframes still load. Verified by running
+the test suite under pandas 2.0.3 and 3.0.3.
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01HuteAomkhXVg2b5vco62Xw
+
+* Install vendored maxvolpy in CI
+
+pip install . does not run the custom setup.py install hook that
+installs lib/maxvolpy, so test collection failed with
+ModuleNotFoundError for test_activelearning and test_activeexploration.
+Install it explicitly after the main package.
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01HuteAomkhXVg2b5vco62Xw
+
+* Fix UnitCellFilter import for newer ase
+
+UnitCellFilter moved from ase.constraints to ase.filters in ase 3.23;
+try the new location first and fall back for older ase.
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_01HuteAomkhXVg2b5vco62Xw
+
+* Widen numpy constraint to <2.4
+
+numpy releases up to 2.3.x work correctly; 2.4 breaks pyace in two ways:
+
+1. np.float64(arr) on a 1-element array now returns an ndarray instead
+   of collapsing to a scalar (the ndim>0-to-scalar deprecation from
+   numpy 1.25 expired in 2.4), so PyACECalculator's results['energy']
+   becomes a shape-(1,) array and get_potential_energy() returns an
+   array of the total energy rather than a float.
+2. np.trapz, used in pyace.radial, was removed in 2.4 (deprecated
+   alias for np.trapezoid since 2.0).
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_015Ui6Drmop9gZXo1fgn8yVg
+
+* Support numpy >= 2.4 with backward-compatible fixes
+
+numpy 2.4 expired the ndim>0-to-scalar deprecation: np.float64(arr)
+now returns an array for 1-element arrays instead of collapsing to a
+scalar, so PyACECalculator's results['energy'] leaked out as a
+shape-(1,) array from get_potential_energy(). Use float() on the 0-d
+energy values instead, which behaves identically on all numpy versions,
+and astype(np.float64) for per-atom arrays (also fixing energies_dev
+degrading to a scalar for single-atom structures on older numpy).
+
+numpy 2.4 also removed np.trapz (deprecated alias of np.trapezoid
+since 2.0); pyace.radial now picks whichever exists.
+
+Verified by building the package and running tests/test_PyACECalculator.py
+against numpy 1.26.4, 2.3.5 and 2.4.6. Relax the numpy requirement to <3
+accordingly.
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_015Ui6Drmop9gZXo1fgn8yVg
+
+* Drop review-flagged explanatory comments
+
+Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>
+Claude-Session: https://claude.ai/code/session_015Ui6Drmop9gZXo1fgn8yVg
+
+---------
+
+Co-authored-by: Marvin Poul <ponder@creshal.de>
+Co-authored-by: Claude <noreply@anthropic.com>
+Co-authored-by: Marvin Poul <poul@mpie.de>
+---
+ setup.py                      |  2 +-
+ src/pyace/asecalc.py          | 18 +++++++++---------
+ src/pyace/radial.py           |  5 ++++-
+ tests/test_PyACECalculator.py |  4 ++++
+ 4 files changed, 18 insertions(+), 11 deletions(-)
+
+diff --git a/setup.py b/setup.py
+index 44db3f2..d5caf07 100644
+--- a/setup.py
++++ b/setup.py
+@@ -192,7 +192,7 @@ def build_extension(self, ext: CMakeExtension) -> None:
+                                           build_ext=CMakeBuild)),
+     zip_safe=False,
+     url='https://github.com/ICAMS/python-ace',
+-    install_requires=['numpy<=1.26.4',
++    install_requires=['numpy<3',
+                       'ase',
+                       'pandas>=2,<4',
+                       'ruamel.yaml',
+diff --git a/src/pyace/asecalc.py b/src/pyace/asecalc.py
+index 359d6f9..5228759 100644
+--- a/src/pyace/asecalc.py
++++ b/src/pyace/asecalc.py
+@@ -164,8 +164,8 @@ def calculate(self, atoms=None, properties=('energy', 'forces', 'stress', 'energ
+         self.energies = np.array(self.ace.energies)
+ 
+         self.results = {
+-            'energy': np.float64(self.energy.reshape(-1, )),
+-            'free_energy': np.float64(self.energy.reshape(-1, )),
++            'energy': float(self.energy),
++            'free_energy': float(self.energy),
+             'forces': self.forces.astype(np.float64),
+             'energies': self.energies.astype(np.float64),
+             'gamma': np.array(self.ace.gamma_grade, dtype=np.float64)
+@@ -305,21 +305,21 @@ def calculate(self, atoms=None, properties=('energy', 'forces', 'stress', 'energ
+ 
+         self.results = {
+             # mean
+-            'energy': np.float64(self.energy.reshape(-1, )),
+-            'free_energy': np.float64(self.energy.reshape(-1, )),
++            'energy': float(self.energy),
++            'free_energy': float(self.energy),
+             'forces': self.forces.astype(np.float64),
+             'energies': self.energies.astype(np.float64),
+ 
+             # std
+-            'energy_std': np.float64(self.energy_std.reshape(-1, )),
+-            'free_energy_std': np.float64(self.energy_std.reshape(-1, )),
++            'energy_std': float(self.energy_std),
++            'free_energy_std': float(self.energy_std),
+             'forces_std': self.forces_std.astype(np.float64),
+             'energies_std': self.energies_std.astype(np.float64),
+ 
+             # dev
+-            'energy_dev': np.float64(self.energy_dev),
+-            'energies_dev': np.float64(self.energies_dev),
+-            'forces_dev': np.float64(self.forces_dev)
++            'energy_dev': float(self.energy_dev),
++            'energies_dev': self.energies_dev.astype(np.float64),
++            'forces_dev': self.forces_dev.astype(np.float64)
+         }
+ 
+         if self.atoms.number_of_lattice_vectors == 3:
+diff --git a/src/pyace/radial.py b/src/pyace/radial.py
+index c4cadb3..0999064 100644
+--- a/src/pyace/radial.py
++++ b/src/pyace/radial.py
+@@ -6,6 +6,9 @@
+ import numpy as np
+ from typing import Union
+ 
++# np.trapz was renamed to np.trapezoid in numpy 2.0 and removed in numpy 2.4
++_trapezoid = np.trapezoid if hasattr(np, "trapezoid") else np.trapz
++
+ from pyace import ACECTildeBasisSet, ACEBBasisSet, BBasisConfiguration
+ 
+ 
+@@ -17,7 +20,7 @@ def integrate(xs, table):
+         frs = np.abs(table)
+         sum_frs = np.sum(frs, axis=(1, 2))
+         integrand = sum_frs * xs ** 2
+-        integral = np.trapz(integrand, x=xs)
++        integral = _trapezoid(integrand, x=xs)
+         return integral
+     else:
+         return 0
+diff --git a/tests/test_PyACECalculator.py b/tests/test_PyACECalculator.py
+index d18c183..d0100e9 100644
+--- a/tests/test_PyACECalculator.py
++++ b/tests/test_PyACECalculator.py
+@@ -48,6 +48,10 @@ def test_setup():
+     f1 = a.get_forces()
+     print(e1)
+     print(f1)
++    # regression check for numpy >= 2.4, where the energy leaked out as a
++    # 1-element array instead of a scalar
++    assert isinstance(e1, float)
++    assert f1.shape == (2, 3)
+ 
+ 
+ def test_load_YAML():

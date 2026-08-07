@@ -12,10 +12,12 @@ source:
     - pybind.patch
     - grace.patch
     - setup.patch
+    - numpy.patch
+    - pandas.patch
 
 build:
   script: {{ PYTHON }} -m pip install . -vv
-  number: 2
+  number: 3
   skip: true  # [win or py>312]
 
 requirements:
@@ -33,9 +35,9 @@ requirements:
   run:
     - python
     - ase
-    - numpy <2.2
+    - numpy <3
     - setuptools <81
-    - pandas
+    - pandas >=2,<4
     - psutil
     - ruamel.yaml
     - libcxx  # [osx]

@@ -1,0 +1,71 @@
+schema_version: 1
+
+context:
+  name: python-ace
+  version: "0.3.1"
+
+package:
+  name: ${{ name|lower }}
+  version: ${{ version }}
+
+source:
+  url: https://github.com/ICAMS/${{ name }}/archive/d1c213a7d9c5b809a3ae83b2e5a916be26d921f0.tar.gz
+  sha256: 8ff9471ff9c659b038a924ace5cc6b50db993885568043b0650c427c79543508
+  patches:
+    - pybind.patch
+    - grace.patch
+    - setup.patch
+
+build:
+  number: 3
+  skip: win or match(python, ">3.12")
+  script: ${{ PYTHON }} -m pip install . -vv
+
+requirements:
+  build:
+    - if: build_platform != target_platform
+      then: python
+    - if: build_platform != target_platform
+      then: cross-python_${{ target_platform }}
+    - cmake
+    - make
+    - ${{ compiler('cxx') }}
+    - ${{ stdlib("c") }}
+  host:
+    - python
+    - pip
+    - pybind11
+  run:
+    - python
+    - ase
+    - numpy <2.2
+    - setuptools <81
+    - pandas
+    - psutil
+    - ruamel.yaml
+    - if: osx
+      then: libcxx
+    - scikit-learn
+    - grace-tensorpotential
+
+tests:
+  - python:
+      imports:
+        - pyace
+      pip_check: true
+
+about:
+  summary: pacemaker - a tool for fitting of interatomic potentials in a general nonlinear Atomic Cluster Expansion (ACE) form
+  description: |
+    pacemaker - a tool for fitting of interatomic potentials in a general
+    nonlinear Atomic Cluster Expansion (ACE) form.
+  license: ADSL
+  license_file: LICENSE.md
+  homepage: https://github.com/ICAMS/python-ace/
+  repository: https://github.com/ICAMS/python-ace/
+  documentation: https://pacemaker.readthedocs.io
+
+extra:
+  recipe-maintainers:
+    - srmnitc
+    - jan-janssen
